@@ -1,17 +1,15 @@
-class SRUTwin:
+class UtilityTwin:
     def __init__(self, data):
-        self.solvent_in = data["SRU_Solvent_In_kg"]
-        self.solvent_out = data["SRU_Solvent_Out_kg"]
-        self.cod = data["ETP_COD_mgL"]
-        self.water_reused = data["ZLD_Water_Reused_m3"]
+        self.boiler = data["Boiler_Steam_kg"]
+        self.chiller = data["Chiller_Energy_kWh"]
+        self.hvac = data["HVAC_Energy_kWh"]
+        self.vacuum = data["Vacuum_Energy_kWh"]
         self.batch_ids = data["BatchID"]
 
-    def recovery_efficiency(self):
-        return (self.solvent_out / self.solvent_in).mean() * 100
-
-    def get_kpi(self):
+    def get_energy_dashboard(self):
         return {
-            "Solvent Recovery (%)": self.recovery_efficiency(),
-            "Avg COD": self.cod.mean(),
-            "Water Reused": self.water_reused.mean()
+            "Boiler Steam (kg)": self.boiler.sum(),
+            "Chiller Energy (kWh)": self.chiller.sum(),
+            "HVAC Energy (kWh)": self.hvac.sum(),
+            "Vacuum Energy (kWh)": self.vacuum.sum()
         }
