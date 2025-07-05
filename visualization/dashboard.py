@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 def show_dashboard(data, kpis):
     st.header("📊 Real-time Dashboards")
 
-    # 1. Reactor KPIs
+    # Reactor KPIs
     with st.container():
         st.subheader("Reactor KPIs")
         col1, col2, col3, col4 = st.columns(4)
@@ -17,7 +17,7 @@ def show_dashboard(data, kpis):
         fig = px.line(data, x="BatchID", y="Reactor_Temp", title="Reactor Temperature per Batch")
         st.plotly_chart(fig, use_container_width=True)
     
-    # 2. Dryer KPIs
+    # Dryer KPIs
     with st.container():
         st.subheader("Dryer KPIs")
         col1, col2 = st.columns(2)
@@ -27,7 +27,7 @@ def show_dashboard(data, kpis):
         fig2 = px.bar(data, x="BatchID", y="Dryer_Energy_kWh", title="Dryer Energy (kWh) per Batch")
         st.plotly_chart(fig2, use_container_width=True)
 
-    # 3. Solvent Recovery & ETP KPIs
+    # Solvent Recovery & ETP KPIs
     with st.container():
         st.subheader("Solvent Recovery & ETP KPIs")
         col1, col2, col3 = st.columns(3)
@@ -41,7 +41,7 @@ def show_dashboard(data, kpis):
         fig3.update_layout(barmode='group', title="Solvent In/Out per Batch")
         st.plotly_chart(fig3, use_container_width=True)
 
-    # 4. Utilities KPIs
+    # Utilities KPIs - Separate Graphs
     with st.container():
         st.subheader("Utilities KPIs")
         util = kpis["Utilities"]
@@ -50,16 +50,24 @@ def show_dashboard(data, kpis):
         col2.metric("Chiller Energy (kWh)", f"{util['Chiller Energy (kWh)']:.0f}")
         col3.metric("HVAC Energy (kWh)", f"{util['HVAC Energy (kWh)']:.0f}")
         col4.metric("Vacuum Energy (kWh)", f"{util['Vacuum Energy (kWh)']:.0f}")
-        st.caption("Utility Energy Use per Batch")
-        fig4 = go.Figure()
-        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["Boiler_Steam_kg"], name="Boiler Steam"))
-        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["Chiller_Energy_kWh"], name="Chiller"))
-        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["HVAC_Energy_kWh"], name="HVAC"))
-        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["Vacuum_Energy_kWh"], name="Vacuum"))
-        fig4.update_layout(barmode='group', title="Utility Consumption per Batch")
-        st.plotly_chart(fig4, use_container_width=True)
 
-    # 5. Yield & Energy per kg API
+        st.caption("Boiler Steam per Batch")
+        fig_boiler = px.bar(data, x="BatchID", y="Boiler_Steam_kg", title="Boiler Steam (kg) per Batch")
+        st.plotly_chart(fig_boiler, use_container_width=True)
+
+        st.caption("Chiller Energy per Batch")
+        fig_chiller = px.bar(data, x="BatchID", y="Chiller_Energy_kWh", title="Chiller Energy (kWh) per Batch")
+        st.plotly_chart(fig_chiller, use_container_width=True)
+
+        st.caption("HVAC Energy per Batch")
+        fig_hvac = px.bar(data, x="BatchID", y="HVAC_Energy_kWh", title="HVAC Energy (kWh) per Batch")
+        st.plotly_chart(fig_hvac, use_container_width=True)
+
+        st.caption("Vacuum Energy per Batch")
+        fig_vacuum = px.bar(data, x="BatchID", y="Vacuum_Energy_kWh", title="Vacuum Energy (kWh) per Batch")
+        st.plotly_chart(fig_vacuum, use_container_width=True)
+
+    # Yield & Energy per kg API
     with st.container():
         st.subheader("Yield & Energy per kg API")
         col1, col2 = st.columns(2)
