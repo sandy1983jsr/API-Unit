@@ -1,4 +1,5 @@
 import streamlit as st
+import plotly.graph_objects as go
 import plotly.express as px
 
 def show_dashboard(data, kpis):
@@ -20,5 +21,38 @@ def show_dashboard(data, kpis):
             labels={"x": "BatchID", "y": "Energy (kWh/kg)"},
             title="Total Energy Use per kg API")
         st.plotly_chart(fig, use_container_width=True)
-    st.subheader("KPIs Summary")
-    st.json(kpis)
+
+    st.subheader("KPI Summary (Bar Chart)")
+    _plot_kpi_bar(kpis)
+    st.subheader("KPI Comparison (Radar Chart)")
+    _plot_kpi_radar(kpis)
+
+def _plot_kpi_bar(kpis):
+    # Flatten the KPI dictionary for bar chart
+    categories = []
+    values = []
+    for area, area_kpi in kpis.items():
+        for k, v in area_kpi.items():
+            categories.append(f"{area}: {k}")
+            values.append(float(v))
+    fig = px.bar(x=categories, y=values, labels={"x": "KPI", "y": "Value"})
+    st.plotly_chart(fig, use_container_width=True)
+
+def _plot_kpi_radar(kpis):
+    # Pick common KPIs for the radar
+    radar_kpis = {}
+    for area, area_kpi in kpis.items():
+        for k, v in area_kpi.items():
+            radar_kpis[f"{area}-{k}"] = float(v)
+    categories = list(radar_kpis.keys())
+    values = list(radar_kpis.values())
+    fig = go.Figure(data=go.Scatterpolar(
+        r=values + [values[0]],  # Close the loop
+        theta=categories + [categories[0]],
+        fill='toself'))
+    fig.update_layout(
+        polar=dict(radialaxis=dict(visible=True)),
+        showlegend=False,
+        title="KPI Radar Chart"
+    )
+    st.plotly_chart(fig, use_container_width=True)
