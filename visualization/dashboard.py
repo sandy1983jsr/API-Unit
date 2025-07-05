@@ -1,58 +1,77 @@
 import streamlit as st
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 
 def show_dashboard(data, kpis):
     st.header("📊 Real-time Dashboards")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Yield vs Ideal Batch")
-        fig = px.line(
-            data, x="BatchID", y="Crystallizer_Yield", color="Product",
-            title="Crystallizer Yield (%)")
+
+    # 1. Reactor KPIs
+    with st.container():
+        st.subheader("Reactor KPIs")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Avg Temp (°C)", f"{kpis['Reactor']['Avg Temp']:.1f}")
+        col2.metric("Avg Agitation (rpm)", f"{kpis['Reactor']['Avg Agitation']:.0f}")
+        col3.metric("Avg Time (hr)", f"{kpis['Reactor']['Avg Time']:.2f}")
+        col4.metric("Energy Use (arb)", f"{kpis['Reactor']['Energy Use']:.2f}")
+        st.caption("Batchwise Temperature Profile")
+        fig = px.line(data, x="BatchID", y="Reactor_Temp", title="Reactor Temperature per Batch")
         st.plotly_chart(fig, use_container_width=True)
-    with col2:
-        st.subheader("Energy Use per kg API")
+    
+    # 2. Dryer KPIs
+    with st.container():
+        st.subheader("Dryer KPIs")
+        col1, col2 = st.columns(2)
+        col1.metric("Avg Drying Time (hr)", f"{kpis['Dryer']['Avg Drying Time']:.2f}")
+        col2.metric("Avg Dryer Energy (kWh)", f"{kpis['Dryer']['Avg Energy']:.2f}")
+        st.caption("Dryer Energy Use per Batch")
+        fig2 = px.bar(data, x="BatchID", y="Dryer_Energy_kWh", title="Dryer Energy (kWh) per Batch")
+        st.plotly_chart(fig2, use_container_width=True)
+
+    # 3. Solvent Recovery & ETP KPIs
+    with st.container():
+        st.subheader("Solvent Recovery & ETP KPIs")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Solvent Recovery (%)", f"{kpis['Solvent Recovery']['Solvent Recovery (%)']:.2f}")
+        col2.metric("Avg COD (mg/L)", f"{kpis['Solvent Recovery']['Avg COD']:.1f}")
+        col3.metric("Water Reused (m³)", f"{kpis['Solvent Recovery']['Water Reused']:.2f}")
+        st.caption("Solvent In/Out per Batch")
+        fig3 = go.Figure()
+        fig3.add_trace(go.Bar(x=data["BatchID"], y=data["SRU_Solvent_In_kg"], name="Solvent In"))
+        fig3.add_trace(go.Bar(x=data["BatchID"], y=data["SRU_Solvent_Out_kg"], name="Solvent Out"))
+        fig3.update_layout(barmode='group', title="Solvent In/Out per Batch")
+        st.plotly_chart(fig3, use_container_width=True)
+
+    # 4. Utilities KPIs
+    with st.container():
+        st.subheader("Utilities KPIs")
+        util = kpis["Utilities"]
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Boiler Steam (kg)", f"{util['Boiler Steam (kg)']:.0f}")
+        col2.metric("Chiller Energy (kWh)", f"{util['Chiller Energy (kWh)']:.0f}")
+        col3.metric("HVAC Energy (kWh)", f"{util['HVAC Energy (kWh)']:.0f}")
+        col4.metric("Vacuum Energy (kWh)", f"{util['Vacuum Energy (kWh)']:.0f}")
+        st.caption("Utility Energy Use per Batch")
+        fig4 = go.Figure()
+        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["Boiler_Steam_kg"], name="Boiler Steam"))
+        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["Chiller_Energy_kWh"], name="Chiller"))
+        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["HVAC_Energy_kWh"], name="HVAC"))
+        fig4.add_trace(go.Bar(x=data["BatchID"], y=data["Vacuum_Energy_kWh"], name="Vacuum"))
+        fig4.update_layout(barmode='group', title="Utility Consumption per Batch")
+        st.plotly_chart(fig4, use_container_width=True)
+
+    # 5. Yield & Energy per kg API
+    with st.container():
+        st.subheader("Yield & Energy per kg API")
+        col1, col2 = st.columns(2)
+        col1.caption("Crystallizer Yield per Batch")
+        fig5 = px.line(data, x="BatchID", y="Crystallizer_Yield", color="Product", title="Crystallizer Yield (%)")
+        col1.plotly_chart(fig5, use_container_width=True)
+        col2.caption("Energy Use per kg API")
         energy_per_kg = (data["Dryer_Energy_kWh"] + data["Distillation_Energy_kWh"] +
                          data["Chiller_Energy_kWh"] + data["HVAC_Energy_kWh"] +
                          data["Vacuum_Energy_kWh"]) / data["Batch_Throughput_kg"]
-        fig = px.bar(
+        fig6 = px.bar(
             x=data["BatchID"], y=energy_per_kg,
             labels={"x": "BatchID", "y": "Energy (kWh/kg)"},
             title="Total Energy Use per kg API")
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("KPI Summary (Bar Chart)")
-    _plot_kpi_bar(kpis)
-    st.subheader("KPI Comparison (Radar Chart)")
-    _plot_kpi_radar(kpis)
-
-def _plot_kpi_bar(kpis):
-    # Flatten the KPI dictionary for bar chart
-    categories = []
-    values = []
-    for area, area_kpi in kpis.items():
-        for k, v in area_kpi.items():
-            categories.append(f"{area}: {k}")
-            values.append(float(v))
-    fig = px.bar(x=categories, y=values, labels={"x": "KPI", "y": "Value"})
-    st.plotly_chart(fig, use_container_width=True)
-
-def _plot_kpi_radar(kpis):
-    # Pick common KPIs for the radar
-    radar_kpis = {}
-    for area, area_kpi in kpis.items():
-        for k, v in area_kpi.items():
-            radar_kpis[f"{area}-{k}"] = float(v)
-    categories = list(radar_kpis.keys())
-    values = list(radar_kpis.values())
-    fig = go.Figure(data=go.Scatterpolar(
-        r=values + [values[0]],  # Close the loop
-        theta=categories + [categories[0]],
-        fill='toself'))
-    fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True)),
-        showlegend=False,
-        title="KPI Radar Chart"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        col2.plotly_chart(fig6, use_container_width=True)
